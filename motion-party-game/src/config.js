@@ -9,7 +9,9 @@ export const CONFIG = {
     // Requested webcam capture height.
     videoHeight: 480,
     // Supported number of local players in MVP.
-    maxPlayers: 2
+    maxPlayers: 2,
+    // Minimum interval between repeated warnings of same tracking type.
+    warningCooldownMs: 2500
   },
   gestures: {
     // Minimum wrist speed for a swing gesture.

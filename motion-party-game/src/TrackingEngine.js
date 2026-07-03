@@ -32,6 +32,7 @@ export default class TrackingEngine {
     this.expectedPlayers = 1;
     this.fallbackProvider = null;
     this.inferenceTimer = null;
+    this.warningLastAt = new Map();
   }
 
   async init() {
@@ -39,10 +40,7 @@ export default class TrackingEngine {
       await this.startCamera();
     } catch (error) {
       this.cameraAvailable = false;
-      this.eventBus.emit("tracking-warning", {
-        type: "camera",
-        message: "Camera unavailable. Keyboard mode can still be used."
-      });
+      this.emitTrackingWarning("camera", "Camera unavailable. Keyboard mode can still be used.");
     }
 
     if (this.cameraAvailable) {
@@ -100,16 +98,10 @@ export default class TrackingEngine {
           numHands: 2
         });
       } catch (error) {
-        this.eventBus.emit("tracking-warning", {
-          type: "hands",
-          message: "Hand tracking failed to load. Using pose-only gestures."
-        });
+        this.emitTrackingWarning("hands", "Hand tracking failed to load. Using pose-only gestures.");
       }
     } catch (error) {
-      this.eventBus.emit("tracking-warning", {
-        type: "model",
-        message: "Tracking models failed to load. Keyboard fallback available."
-      });
+      this.emitTrackingWarning("model", "Tracking models failed to load. Keyboard fallback available.");
     }
   }
 
@@ -161,6 +153,7 @@ export default class TrackingEngine {
     this.poseLandmarker = null;
     this.handLandmarker = null;
     this.fallbackProvider = null;
+    this.warningLastAt.clear();
   }
 
   getLatestFrame() {
@@ -227,23 +220,28 @@ export default class TrackingEngine {
       };
 
       if (players.some((player) => player.confidence < this.config.tracking.confidenceMin)) {
-        this.eventBus.emit("tracking-warning", {
-          type: "confidence",
-          message: "Tracking confidence is low. Move into better lighting."
-        });
+        this.emitTrackingWarning("confidence", "Tracking confidence is low. Move into better lighting.");
       }
 
       this.publishFrame(frame);
     } catch (error) {
-      this.eventBus.emit("tracking-warning", {
-        type: "runtime",
-        message: "Tracking hiccup detected. Continuing with last known frame."
-      });
+      this.emitTrackingWarning("runtime", "Tracking hiccup detected. Continuing with last known frame.");
       const fallbackFrame = this.latestFrame
         ? { ...this.latestFrame, timestamp: performance.now() }
         : this.createEmptyFrame("camera");
       this.publishFrame(fallbackFrame);
     }
+  }
+
+  emitTrackingWarning(type, message) {
+    const cooldownMs = this.config.tracking.warningCooldownMs ?? 2500;
+    const now = performance.now();
+    const lastWarningAt = this.warningLastAt.get(type) ?? -Infinity;
+    if (now - lastWarningAt < cooldownMs) {
+      return;
+    }
+    this.warningLastAt.set(type, now);
+    this.eventBus.emit("tracking-warning", { type, message });
   }
 
   publishFrame(frame) {
