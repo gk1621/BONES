@@ -89,12 +89,11 @@ export default class DanceMode extends IGameMode {
   }
 
   drawTargetPose() {
-    const scene = this.sceneManager.getScene();
     this.visuals.forEach((visual, index) => {
       if (index === 0) {
         return;
       }
-      scene.remove(visual);
+      this.sceneManager.removeAndDispose(visual);
     });
     this.visuals = this.visuals.slice(0, 1);
 
@@ -148,7 +147,7 @@ export default class DanceMode extends IGameMode {
     }
 
     group.position.set(0, 0.3, -1.5);
-    scene.add(group);
+    this.sceneManager.getScene().add(group);
     this.visuals.push(group);
   }
 
@@ -194,8 +193,7 @@ export default class DanceMode extends IGameMode {
   }
 
   teardown() {
-    const scene = this.sceneManager.getScene();
-    this.visuals.forEach((visual) => scene.remove(visual));
+    this.visuals.forEach((visual) => this.sceneManager.removeAndDispose(visual));
     this.visuals = [];
   }
 }

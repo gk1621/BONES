@@ -113,8 +113,7 @@ export default class BowlingMode extends IGameMode {
   }
 
   setupPins() {
-    const scene = this.sceneManager.getScene();
-    this.pinMeshes.forEach((pin) => scene.remove(pin.mesh));
+    this.pinMeshes.forEach((pin) => this.sceneManager.removeAndDispose(pin.mesh));
     this.pinMeshes = [];
     this.pinState = PIN_LAYOUT.map(() => true);
     PIN_LAYOUT.forEach(([x, z], index) => {
@@ -123,7 +122,7 @@ export default class BowlingMode extends IGameMode {
         new THREE.MeshStandardMaterial({ color: "#f8fafc" })
       );
       mesh.position.set(x, 0.45, z);
-      scene.add(mesh);
+      this.sceneManager.getScene().add(mesh);
       this.pinMeshes.push({ mesh, index });
       this.objects.push(mesh);
     });
@@ -212,8 +211,7 @@ export default class BowlingMode extends IGameMode {
   }
 
   teardown() {
-    const scene = this.sceneManager.getScene();
-    this.objects.forEach((object) => scene.remove(object));
+    this.objects.forEach((object) => this.sceneManager.removeAndDispose(object));
     this.objects = [];
     this.pinMeshes = [];
     this.ball = null;

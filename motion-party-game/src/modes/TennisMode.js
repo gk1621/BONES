@@ -167,8 +167,7 @@ export default class TennisMode extends IGameMode {
   }
 
   teardown() {
-    const scene = this.sceneManager.getScene();
-    this.objects.forEach((object) => scene.remove(object));
+    this.objects.forEach((object) => this.sceneManager.removeAndDispose(object));
     this.objects = [];
     this.ball.mesh = null;
   }

@@ -41,19 +41,11 @@ export default class SceneManager {
       if (object.userData?.persistent) {
         return;
       }
-      this.scene.remove(object);
-      if (object.geometry) {
-        object.geometry.dispose();
-      }
-      if (object.material) {
-        if (Array.isArray(object.material)) {
-          object.material.forEach((mat) => mat.dispose());
-        } else {
-          object.material.dispose();
-        }
-      }
+      this.removeAndDispose(object);
     });
-    this.addDefaultLights();
+    if (!this.scene.children.some((child) => child.userData?.persistent && child.isLight)) {
+      this.addDefaultLights();
+    }
   }
 
   setCameraMode(mode) {
@@ -61,12 +53,40 @@ export default class SceneManager {
   }
 
   addDefaultLights() {
+    if (this.scene.children.some((child) => child.userData?.persistent && child.isLight)) {
+      return;
+    }
     const ambient = new THREE.AmbientLight(0xffffff, 0.5);
     ambient.userData.persistent = true;
     const key = new THREE.DirectionalLight(0xffffff, 0.9);
     key.position.set(6, 10, 4);
     key.userData.persistent = true;
     this.scene.add(ambient, key);
+  }
+
+  removeAndDispose(object) {
+    if (!object) {
+      return;
+    }
+    if (object.parent) {
+      object.parent.remove(object);
+    }
+    object.traverse((node) => {
+      if (node.geometry) {
+        node.geometry.dispose();
+      }
+      if (node.material) {
+        const materials = Array.isArray(node.material) ? node.material : [node.material];
+        materials.forEach((material) => {
+          Object.values(material).forEach((value) => {
+            if (value && typeof value === "object" && "isTexture" in value) {
+              value.dispose?.();
+            }
+          });
+          material.dispose?.();
+        });
+      }
+    });
   }
 
   render() {

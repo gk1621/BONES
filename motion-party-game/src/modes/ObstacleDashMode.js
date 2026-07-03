@@ -122,13 +122,12 @@ export default class ObstacleDashMode extends IGameMode {
   }
 
   updateObstacles(dt) {
-    const scene = this.sceneManager.getScene();
     this.obstacles.forEach((obstacle) => {
       obstacle.mesh.position.z += this.speed * dt;
     });
     this.obstacles = this.obstacles.filter((obstacle) => {
       if (obstacle.mesh.position.z > 10) {
-        scene.remove(obstacle.mesh);
+        this.sceneManager.removeAndDispose(obstacle.mesh);
         return false;
       }
       return true;
@@ -206,9 +205,8 @@ export default class ObstacleDashMode extends IGameMode {
   }
 
   teardown() {
-    const scene = this.sceneManager.getScene();
-    this.objects.forEach((object) => scene.remove(object));
-    this.obstacles.forEach((obstacle) => scene.remove(obstacle.mesh));
+    this.objects.forEach((object) => this.sceneManager.removeAndDispose(object));
+    this.obstacles.forEach((obstacle) => this.sceneManager.removeAndDispose(obstacle.mesh));
     this.objects = [];
     this.obstacles = [];
   }

@@ -61,7 +61,13 @@ export default class TargetTossMode extends IGameMode {
       projectile.life -= dt;
     });
     this.checkProjectileHits();
-    this.projectiles = this.projectiles.filter((projectile) => projectile.life > 0 && projectile.mesh.position.y > -1);
+    this.projectiles = this.projectiles.filter((projectile) => {
+      const keep = projectile.life > 0 && projectile.mesh.position.y > -1;
+      if (!keep) {
+        this.sceneManager.removeAndDispose(projectile.mesh);
+      }
+      return keep;
+    });
 
     this.checkCompletion();
   }
@@ -188,9 +194,8 @@ export default class TargetTossMode extends IGameMode {
   }
 
   teardown() {
-    const scene = this.sceneManager.getScene();
-    this.objects.forEach((object) => scene.remove(object));
-    this.projectiles.forEach((projectile) => scene.remove(projectile.mesh));
+    this.objects.forEach((object) => this.sceneManager.removeAndDispose(object));
+    this.projectiles.forEach((projectile) => this.sceneManager.removeAndDispose(projectile.mesh));
     this.objects = [];
     this.projectiles = [];
     this.targets = [];
