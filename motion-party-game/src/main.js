@@ -104,9 +104,15 @@ const wait = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
 let appDisposed = false;
 let animationFrameId = null;
 let qaSmokeSession = null;
+let lastSmokeReport = null;
 
 const emitSmokeStatus = (running, message) => {
   eventBus.emit("qa-smoke-status", { running, message });
+};
+
+const emitSmokeReport = (report) => {
+  lastSmokeReport = report;
+  eventBus.emit("qa-smoke-report", report);
 };
 
 const isSmokeSessionActive = (session) =>
@@ -131,6 +137,10 @@ const runQaSmoke = async () => {
   qaSmokeSession = session;
   const player = { playerId: "p1", name: "Player 1", color: "#4ecdc4" };
   const modeIds = ["tennis", "bowling", "obstacle-dash", "dance", "target-toss"];
+  const runStartedAt = performance.now();
+  const completedModes = [];
+  let currentStep = "init";
+  let finalReport = null;
 
   const stepWait = async (ms) => {
     await wait(ms);
@@ -138,12 +148,14 @@ const runQaSmoke = async () => {
   };
 
   try {
+    currentStep = "start-keyboard-demo";
     emitSmokeStatus(true, "Starting keyboard demo");
     gameManager.startKeyboardDemo();
     if (!(await stepWait(180))) {
       return;
     }
 
+    currentStep = "setup-player";
     emitSmokeStatus(true, "Preparing single-player setup");
     gameManager.setPlayers([player]);
     gameManager.beginCalibration();
@@ -151,6 +163,7 @@ const runQaSmoke = async () => {
       return;
     }
 
+    currentStep = "calibration-skip";
     emitSmokeStatus(true, "Skipping calibration for smoke path");
     gameManager.advanceCalibration(true);
     if (!(await stepWait(220))) {
@@ -158,6 +171,7 @@ const runQaSmoke = async () => {
     }
 
     for (const modeId of modeIds) {
+      currentStep = `mode:${modeId}`;
       emitSmokeStatus(true, `Testing mode: ${modeId}`);
       gameManager.startMode(modeId);
       if (!(await stepWait(320))) {
@@ -173,12 +187,29 @@ const runQaSmoke = async () => {
       if (!(await stepWait(180))) {
         return;
       }
+      completedModes.push(modeId);
     }
 
+    finalReport = {
+      result: "completed",
+      durationMs: Math.round(performance.now() - runStartedAt),
+      modesTested: completedModes,
+      finishedAt: new Date().toISOString()
+    };
     emitSmokeStatus(false, "Smoke run complete");
+    emitSmokeReport(finalReport);
     uiManager.showToast("Keyboard smoke sequence complete.", "ok");
   } catch (error) {
+    finalReport = {
+      result: "failed",
+      durationMs: Math.round(performance.now() - runStartedAt),
+      modesTested: completedModes,
+      step: currentStep,
+      error: error?.message ?? String(error),
+      finishedAt: new Date().toISOString()
+    };
     emitSmokeStatus(false, "Smoke run failed");
+    emitSmokeReport(finalReport);
     uiManager.showToast("Smoke sequence failed. Check console.", "error");
     console.error("QA smoke sequence failed", error);
   } finally {
@@ -189,8 +220,16 @@ const runQaSmoke = async () => {
     const cancelled = qaSmokeSession.cancelled;
     qaSmokeSession.running = false;
     qaSmokeSession = null;
-    if (cancelled && !appDisposed) {
+    if (cancelled && !appDisposed && !finalReport) {
+      finalReport = {
+        result: "cancelled",
+        durationMs: Math.round(performance.now() - runStartedAt),
+        modesTested: completedModes,
+        step: currentStep,
+        finishedAt: new Date().toISOString()
+      };
       emitSmokeStatus(false, "Smoke run cancelled");
+      emitSmokeReport(finalReport);
       uiManager.showToast("Smoke run cancelled.", "warning");
     }
   }
@@ -206,6 +245,7 @@ const stopQaSmoke = () => {
 };
 
 const onDiagnosticsReset = () => {
+  lastSmokeReport = null;
   if (!qaSmokeSession?.running) {
     return;
   }
@@ -248,7 +288,11 @@ const exportDiagnostics = () => {
             }
           : null
       },
-      health: healthMonitor.getSnapshot()
+      health: healthMonitor.getSnapshot(),
+      qa: {
+        smokeRunning: Boolean(qaSmokeSession?.running),
+        lastSmokeReport
+      }
     };
 
     const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: "application/json" });

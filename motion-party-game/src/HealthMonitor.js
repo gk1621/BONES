@@ -17,7 +17,10 @@ export default class HealthMonitor {
       modeRestarts: 0,
       confidenceDrops: 0,
       gesturesTotal: 0,
-      gesturesOutOfContext: 0
+      gesturesOutOfContext: 0,
+      smokeCompleted: 0,
+      smokeCancelled: 0,
+      smokeFailed: 0
     };
     this.lastStatus = { state: "healthy", message: "System healthy" };
 
@@ -27,6 +30,7 @@ export default class HealthMonitor {
     this.onModeStarted = this.handleModeStarted.bind(this);
     this.onGestureDetected = this.handleGestureDetected.bind(this);
     this.onDiagnosticsReset = this.handleDiagnosticsReset.bind(this);
+    this.onSmokeReport = this.handleSmokeReport.bind(this);
   }
 
   init() {
@@ -40,6 +44,7 @@ export default class HealthMonitor {
     this.eventBus.on("mode-started", this.onModeStarted);
     this.eventBus.on("gesture-detected", this.onGestureDetected);
     this.eventBus.on("qa-diagnostics-reset", this.onDiagnosticsReset);
+    this.eventBus.on("qa-smoke-report", this.onSmokeReport);
 
     this.checkTimer = window.setInterval(() => this.check(), 400);
     this.render({ state: "healthy", message: "System healthy" });
@@ -52,6 +57,7 @@ export default class HealthMonitor {
     this.eventBus.off("mode-started", this.onModeStarted);
     this.eventBus.off("gesture-detected", this.onGestureDetected);
     this.eventBus.off("qa-diagnostics-reset", this.onDiagnosticsReset);
+    this.eventBus.off("qa-smoke-report", this.onSmokeReport);
     if (this.checkTimer) {
       window.clearInterval(this.checkTimer);
       this.checkTimer = null;
@@ -108,11 +114,27 @@ export default class HealthMonitor {
       modeRestarts: 0,
       confidenceDrops: 0,
       gesturesTotal: 0,
-      gesturesOutOfContext: 0
+      gesturesOutOfContext: 0,
+      smokeCompleted: 0,
+      smokeCancelled: 0,
+      smokeFailed: 0
     };
     this.lastRenderTick = performance.now();
     this.lastTrackingTick = performance.now();
     this.render({ state: "healthy", message: "System healthy" });
+  }
+
+  handleSmokeReport(report) {
+    if (!report?.result) {
+      return;
+    }
+    if (report.result === "completed") {
+      this.telemetry.smokeCompleted += 1;
+    } else if (report.result === "cancelled") {
+      this.telemetry.smokeCancelled += 1;
+    } else if (report.result === "failed") {
+      this.telemetry.smokeFailed += 1;
+    }
   }
 
   check() {
@@ -183,6 +205,8 @@ export default class HealthMonitor {
         <span>Restarts ${this.telemetry.modeRestarts}</span>
         <span>Confidence drops ${this.telemetry.confidenceDrops}</span>
         <span>Gesture miss-rate ${missRate}%</span>
+        <span>Smoke ok ${this.telemetry.smokeCompleted}</span>
+        <span>Smoke stop/fail ${this.telemetry.smokeCancelled}/${this.telemetry.smokeFailed}</span>
       </div>
     `;
   }

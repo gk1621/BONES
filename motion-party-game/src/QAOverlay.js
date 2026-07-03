@@ -15,11 +15,13 @@ export default class QAOverlay {
     this.launchedModes = new Set();
     this.running = false;
     this.smokeMessage = "Idle";
+    this.lastReportText = "No smoke runs yet.";
 
     this.onStateChanged = this.handleStateChanged.bind(this);
     this.onKeyboardStarted = this.handleKeyboardStarted.bind(this);
     this.onModeStarted = this.handleModeStarted.bind(this);
     this.onSmokeStatus = this.handleSmokeStatus.bind(this);
+    this.onSmokeReport = this.handleSmokeReport.bind(this);
     this.onClick = this.handleClick.bind(this);
   }
 
@@ -33,6 +35,7 @@ export default class QAOverlay {
     this.eventBus.on("keyboard-demo-started", this.onKeyboardStarted);
     this.eventBus.on("mode-started", this.onModeStarted);
     this.eventBus.on("qa-smoke-status", this.onSmokeStatus);
+    this.eventBus.on("qa-smoke-report", this.onSmokeReport);
     this.render();
   }
 
@@ -41,6 +44,7 @@ export default class QAOverlay {
     this.eventBus.off("keyboard-demo-started", this.onKeyboardStarted);
     this.eventBus.off("mode-started", this.onModeStarted);
     this.eventBus.off("qa-smoke-status", this.onSmokeStatus);
+    this.eventBus.off("qa-smoke-report", this.onSmokeReport);
     if (this.element) {
       this.element.removeEventListener("click", this.onClick);
     }
@@ -88,6 +92,7 @@ export default class QAOverlay {
     this.launchedModes.clear();
     this.running = false;
     this.smokeMessage = "Idle";
+    this.lastReportText = "No smoke runs yet.";
     this.render();
   }
 
@@ -119,6 +124,16 @@ export default class QAOverlay {
     this.render();
   }
 
+  handleSmokeReport(report) {
+    if (!report) {
+      return;
+    }
+    const duration = report.durationMs ? `${(report.durationMs / 1000).toFixed(1)}s` : "n/a";
+    const tested = report.modesTested?.length ? report.modesTested.join(", ") : "none";
+    this.lastReportText = `${report.result.toUpperCase()} | ${duration} | modes: ${tested}`;
+    this.render();
+  }
+
   render() {
     if (!this.element) {
       return;
@@ -132,6 +147,7 @@ export default class QAOverlay {
       <strong>QA Checklist</strong>
       <ul>${rows}</ul>
       <p class="qa-status">${this.smokeMessage}</p>
+      <p class="qa-report">${this.lastReportText}</p>
       <button class="btn btn-ghost qa-btn" data-action="run-smoke" ${this.running ? "disabled" : ""}>
         ${this.running ? "Smoke Running" : "Run Keyboard Smoke"}
       </button>
