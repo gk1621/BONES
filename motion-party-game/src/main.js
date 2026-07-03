@@ -11,6 +11,7 @@ import GameManager from "./GameManager.js";
 import DebugOverlay from "./DebugOverlay.js";
 import DebugPanel from "./DebugPanel.js";
 import QAOverlay from "./QAOverlay.js";
+import HealthMonitor from "./HealthMonitor.js";
 import TennisMode from "./modes/TennisMode.js";
 import BowlingMode from "./modes/BowlingMode.js";
 import ObstacleDashMode from "./modes/ObstacleDashMode.js";
@@ -31,6 +32,8 @@ const debugPanel = new DebugPanel(appRoot, eventBus, CONFIG);
 debugPanel.init();
 const qaOverlay = new QAOverlay(appRoot, eventBus);
 qaOverlay.init();
+const healthMonitor = new HealthMonitor(appRoot, eventBus, CONFIG);
+healthMonitor.init();
 
 const trackingEngine = new TrackingEngine(eventBus, CONFIG);
 const gestureRecognizer = new GestureRecognizer(eventBus, CONFIG);
@@ -173,6 +176,7 @@ function loop(now) {
   const dt = Math.min((now - lastTime) / 1000, 0.05);
   lastTime = now;
   const fps = dt > 0 ? 1 / dt : 0;
+  healthMonitor.reportRenderTick(now);
 
   const trackingFrame = trackingEngine.getLatestFrame();
   const gestures = gestureRecognizer.process(trackingFrame, gameManager.players, gameManager.calibrationData);
@@ -198,6 +202,7 @@ function cleanupApp() {
   eventBus.off("qa-run-smoke", runQaSmoke);
 
   qaOverlay.destroy();
+  healthMonitor.destroy();
   debugPanel.destroy();
   debugOverlay.destroy();
   gameManager.destroy();

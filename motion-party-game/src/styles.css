@@ -389,6 +389,35 @@ select {
   padding: 0.5rem 0.65rem;
 }
 
+.health-indicator {
+  position: absolute;
+  left: 1rem;
+  top: 1rem;
+  max-width: 360px;
+  border-radius: 999px;
+  padding: 0.4rem 0.72rem;
+  font-size: 0.78rem;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(8, 16, 31, 0.85);
+  z-index: 4;
+  pointer-events: none;
+}
+
+.health-indicator.healthy {
+  color: #7ef5bf;
+  border-color: rgba(126, 245, 191, 0.52);
+}
+
+.health-indicator.warning {
+  color: #f9d87a;
+  border-color: rgba(249, 216, 122, 0.62);
+}
+
+.health-indicator.critical {
+  color: #ff9aaf;
+  border-color: rgba(255, 154, 175, 0.72);
+}
+
 @media (max-width: 850px) {
   #ui-root {
     padding: 0.7rem;

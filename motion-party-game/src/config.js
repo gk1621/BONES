@@ -50,6 +50,8 @@ export const CONFIG = {
   },
   debug: {
     showSkeletonDefault: false,
-    showVideoDefault: true
+    showVideoDefault: true,
+    // Maximum gap between render/tracking updates before showing a health warning.
+    healthStallMs: 1000
   }
 };
