@@ -9,6 +9,7 @@ import ScoreManager from "./ScoreManager.js";
 import KeyboardFallback from "./KeyboardFallback.js";
 import GameManager from "./GameManager.js";
 import DebugOverlay from "./DebugOverlay.js";
+import DebugPanel from "./DebugPanel.js";
 import TennisMode from "./modes/TennisMode.js";
 import BowlingMode from "./modes/BowlingMode.js";
 import ObstacleDashMode from "./modes/ObstacleDashMode.js";
@@ -19,11 +20,14 @@ import { initAudio, setMasterVolume } from "./utils/audio.js";
 const eventBus = new EventBus();
 const canvas = document.getElementById("game-canvas");
 const debugCanvas = document.getElementById("debug-canvas");
+const appRoot = document.getElementById("app");
 const uiRoot = document.getElementById("ui-root");
 const sceneManager = new SceneManager(canvas, CONFIG);
 sceneManager.init();
 const debugOverlay = new DebugOverlay(debugCanvas, eventBus, CONFIG);
 debugOverlay.init();
+const debugPanel = new DebugPanel(appRoot, eventBus, CONFIG);
+debugPanel.init();
 
 const trackingEngine = new TrackingEngine(eventBus, CONFIG);
 const gestureRecognizer = new GestureRecognizer(eventBus, CONFIG);
@@ -103,12 +107,14 @@ let lastTime = performance.now();
 function loop(now) {
   const dt = Math.min((now - lastTime) / 1000, 0.05);
   lastTime = now;
+  const fps = dt > 0 ? 1 / dt : 0;
 
   const trackingFrame = trackingEngine.getLatestFrame();
   const gestures = gestureRecognizer.process(trackingFrame, gameManager.players, gameManager.calibrationData);
   gameManager.update(dt, trackingFrame, gestures);
   sceneManager.render();
   debugOverlay.render(trackingFrame);
+  debugPanel.updateFrameStats(fps);
 
   requestAnimationFrame(loop);
 }

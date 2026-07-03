@@ -336,8 +336,17 @@ select {
   border-radius: 0.72rem;
   padding: 0.6rem;
   font-size: 0.82rem;
+  line-height: 1.45;
   background: rgba(5, 11, 24, 0.85);
   border: 1px solid rgba(255, 255, 255, 0.18);
+  pointer-events: none;
+  z-index: 4;
+}
+
+.debug-panel strong {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: #9ec8ff;
 }
 
 @media (max-width: 850px) {
