@@ -14,6 +14,7 @@ export default class QAOverlay {
     this.stateMap = Object.fromEntries(CHECK_ITEMS.map((item) => [item.key, false]));
     this.launchedModes = new Set();
     this.running = false;
+    this.smokeMessage = "Idle";
 
     this.onStateChanged = this.handleStateChanged.bind(this);
     this.onKeyboardStarted = this.handleKeyboardStarted.bind(this);
@@ -63,6 +64,14 @@ export default class QAOverlay {
       return;
     }
 
+    if (button.dataset.action === "stop-smoke") {
+      if (!this.running) {
+        return;
+      }
+      this.eventBus.emit("qa-stop-smoke");
+      return;
+    }
+
     if (button.dataset.action === "reset-diagnostics") {
       this.resetDiagnostics();
       this.eventBus.emit("qa-diagnostics-reset");
@@ -78,6 +87,7 @@ export default class QAOverlay {
     this.stateMap = Object.fromEntries(CHECK_ITEMS.map((item) => [item.key, false]));
     this.launchedModes.clear();
     this.running = false;
+    this.smokeMessage = "Idle";
     this.render();
   }
 
@@ -103,8 +113,9 @@ export default class QAOverlay {
     this.render();
   }
 
-  handleSmokeStatus({ running }) {
+  handleSmokeStatus({ running, message }) {
     this.running = Boolean(running);
+    this.smokeMessage = message ?? (this.running ? "Running..." : "Idle");
     this.render();
   }
 
@@ -120,9 +131,11 @@ export default class QAOverlay {
     this.element.innerHTML = `
       <strong>QA Checklist</strong>
       <ul>${rows}</ul>
+      <p class="qa-status">${this.smokeMessage}</p>
       <button class="btn btn-ghost qa-btn" data-action="run-smoke" ${this.running ? "disabled" : ""}>
-        ${this.running ? "Running..." : "Run Keyboard Smoke"}
+        ${this.running ? "Smoke Running" : "Run Keyboard Smoke"}
       </button>
+      <button class="btn btn-ghost qa-btn" data-action="stop-smoke" ${this.running ? "" : "disabled"}>Stop Smoke</button>
       <button class="btn btn-ghost qa-btn" data-action="reset-diagnostics">Reset Diagnostics</button>
       <button class="btn btn-ghost qa-btn" data-action="export-diagnostics">Export Diagnostics</button>
     `;

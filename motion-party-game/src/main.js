@@ -103,60 +103,119 @@ gameManager.init();
 const wait = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
 let appDisposed = false;
 let animationFrameId = null;
+let qaSmokeSession = null;
+
+const emitSmokeStatus = (running, message) => {
+  eventBus.emit("qa-smoke-status", { running, message });
+};
+
+const isSmokeSessionActive = (session) =>
+  Boolean(
+    session &&
+      qaSmokeSession &&
+      qaSmokeSession.id === session.id &&
+      !qaSmokeSession.cancelled &&
+      !appDisposed
+  );
 
 const runQaSmoke = async () => {
   if (appDisposed) {
     return;
   }
+  if (qaSmokeSession?.running) {
+    uiManager.showToast("Smoke run already in progress.", "warning");
+    return;
+  }
+
+  const session = { id: Date.now() + Math.random(), cancelled: false, running: true };
+  qaSmokeSession = session;
   const player = { playerId: "p1", name: "Player 1", color: "#4ecdc4" };
-  eventBus.emit("qa-smoke-status", { running: true });
+  const modeIds = ["tennis", "bowling", "obstacle-dash", "dance", "target-toss"];
+
+  const stepWait = async (ms) => {
+    await wait(ms);
+    return isSmokeSessionActive(session);
+  };
+
   try {
+    emitSmokeStatus(true, "Starting keyboard demo");
     gameManager.startKeyboardDemo();
-    await wait(180);
-    if (appDisposed) {
+    if (!(await stepWait(180))) {
       return;
     }
+
+    emitSmokeStatus(true, "Preparing single-player setup");
     gameManager.setPlayers([player]);
     gameManager.beginCalibration();
-    await wait(180);
-    if (appDisposed) {
+    if (!(await stepWait(180))) {
       return;
     }
+
+    emitSmokeStatus(true, "Skipping calibration for smoke path");
     gameManager.advanceCalibration(true);
-    await wait(220);
-    if (appDisposed) {
+    if (!(await stepWait(220))) {
       return;
     }
 
-    const modeIds = ["tennis", "bowling", "obstacle-dash", "dance", "target-toss"];
     for (const modeId of modeIds) {
-      if (appDisposed) {
-        return;
-      }
+      emitSmokeStatus(true, `Testing mode: ${modeId}`);
       gameManager.startMode(modeId);
-      await wait(320);
-      if (appDisposed) {
+      if (!(await stepWait(320))) {
         return;
       }
+
       gameManager.endRound("qa-smoke");
-      await wait(220);
-      if (appDisposed) {
+      if (!(await stepWait(220))) {
         return;
       }
+
       gameManager.returnToModeSelect();
-      await wait(180);
+      if (!(await stepWait(180))) {
+        return;
+      }
     }
 
-    eventBus.emit("qa-smoke-status", { running: false });
+    emitSmokeStatus(false, "Smoke run complete");
     uiManager.showToast("Keyboard smoke sequence complete.", "ok");
   } catch (error) {
-    eventBus.emit("qa-smoke-status", { running: false });
+    emitSmokeStatus(false, "Smoke run failed");
     uiManager.showToast("Smoke sequence failed. Check console.", "error");
     console.error("QA smoke sequence failed", error);
+  } finally {
+    const wasCurrent = qaSmokeSession && qaSmokeSession.id === session.id;
+    if (!wasCurrent) {
+      return;
+    }
+    const cancelled = qaSmokeSession.cancelled;
+    qaSmokeSession.running = false;
+    qaSmokeSession = null;
+    if (cancelled && !appDisposed) {
+      emitSmokeStatus(false, "Smoke run cancelled");
+      uiManager.showToast("Smoke run cancelled.", "warning");
+    }
   }
 };
 
+const stopQaSmoke = () => {
+  if (!qaSmokeSession?.running) {
+    uiManager.showToast("No smoke run active.", "info");
+    return;
+  }
+  qaSmokeSession.cancelled = true;
+  emitSmokeStatus(true, "Cancelling smoke run...");
+};
+
+const onDiagnosticsReset = () => {
+  if (!qaSmokeSession?.running) {
+    return;
+  }
+  qaSmokeSession.cancelled = true;
+  emitSmokeStatus(true, "Cancelling smoke run...");
+};
+
 eventBus.on("qa-run-smoke", runQaSmoke);
+eventBus.on("qa-stop-smoke", stopQaSmoke);
+eventBus.on("qa-diagnostics-reset", onDiagnosticsReset);
 
 const exportDiagnostics = () => {
   if (appDisposed) {
@@ -252,6 +311,8 @@ function cleanupApp() {
 
   window.removeEventListener("pointerdown", onFirstPointerDown);
   eventBus.off("qa-run-smoke", runQaSmoke);
+  eventBus.off("qa-stop-smoke", stopQaSmoke);
+  eventBus.off("qa-diagnostics-reset", onDiagnosticsReset);
   eventBus.off("qa-export-diagnostics", exportDiagnostics);
 
   qaOverlay.destroy();
