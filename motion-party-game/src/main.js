@@ -158,6 +158,58 @@ const runQaSmoke = async () => {
 
 eventBus.on("qa-run-smoke", runQaSmoke);
 
+const exportDiagnostics = () => {
+  if (appDisposed) {
+    return;
+  }
+  try {
+    const frame = trackingEngine.getLatestFrame();
+    const snapshot = {
+      generatedAt: new Date().toISOString(),
+      app: {
+        state: gameManager.state,
+        currentModeId: gameManager.currentModeId,
+        players: gameManager.players,
+        calibrationPlayers: Object.keys(gameManager.calibrationData ?? {})
+      },
+      tracking: {
+        ready: trackingEngine.isReady(),
+        cameraAvailable: trackingEngine.isCameraAvailable(),
+        frame: frame
+          ? {
+              timestamp: frame.timestamp,
+              source: frame.source,
+              playerCount: frame.players?.length ?? 0,
+              players: (frame.players ?? []).map((player) => ({
+                playerId: player.playerId,
+                confidence: player.confidence,
+                centerX: player.centerX,
+                centerY: player.centerY
+              }))
+            }
+          : null
+      },
+      health: healthMonitor.getSnapshot()
+    };
+
+    const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `motion-party-diagnostics-${Date.now()}.json`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+    uiManager.showToast("Diagnostics JSON exported.", "ok");
+  } catch (error) {
+    console.error("Failed to export diagnostics", error);
+    uiManager.showToast("Failed to export diagnostics.", "error");
+  }
+};
+
+eventBus.on("qa-export-diagnostics", exportDiagnostics);
+
 const onFirstPointerDown = () => {
   initAudio();
   setMasterVolume(CONFIG.audio.masterVolume);
@@ -200,6 +252,7 @@ function cleanupApp() {
 
   window.removeEventListener("pointerdown", onFirstPointerDown);
   eventBus.off("qa-run-smoke", runQaSmoke);
+  eventBus.off("qa-export-diagnostics", exportDiagnostics);
 
   qaOverlay.destroy();
   healthMonitor.destroy();

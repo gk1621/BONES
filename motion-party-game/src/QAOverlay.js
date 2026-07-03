@@ -66,6 +66,11 @@ export default class QAOverlay {
     if (button.dataset.action === "reset-diagnostics") {
       this.resetDiagnostics();
       this.eventBus.emit("qa-diagnostics-reset");
+      return;
+    }
+
+    if (button.dataset.action === "export-diagnostics") {
+      this.eventBus.emit("qa-export-diagnostics");
     }
   }
 
@@ -119,6 +124,7 @@ export default class QAOverlay {
         ${this.running ? "Running..." : "Run Keyboard Smoke"}
       </button>
       <button class="btn btn-ghost qa-btn" data-action="reset-diagnostics">Reset Diagnostics</button>
+      <button class="btn btn-ghost qa-btn" data-action="export-diagnostics">Export Diagnostics</button>
     `;
   }
 }

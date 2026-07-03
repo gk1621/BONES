@@ -19,6 +19,7 @@ export default class HealthMonitor {
       gesturesTotal: 0,
       gesturesOutOfContext: 0
     };
+    this.lastStatus = { state: "healthy", message: "System healthy" };
 
     this.onTrackingUpdated = this.handleTrackingUpdated.bind(this);
     this.onStateChanged = this.handleStateChanged.bind(this);
@@ -147,10 +148,30 @@ export default class HealthMonitor {
     this.render({ state: "healthy", message: "System healthy" });
   }
 
+  getSnapshot() {
+    const missRate = this.telemetry.gesturesTotal
+      ? this.telemetry.gesturesOutOfContext / this.telemetry.gesturesTotal
+      : 0;
+    return {
+      status: { ...this.lastStatus },
+      currentState: this.currentState,
+      telemetry: {
+        ...this.telemetry,
+        gestureMissRate: Number(missRate.toFixed(4))
+      },
+      timings: {
+        lastRenderTick: this.lastRenderTick,
+        lastTrackingTick: this.lastTrackingTick
+      },
+      stallThresholdMs: this.config.debug.healthStallMs
+    };
+  }
+
   render({ state, message }) {
     if (!this.element) {
       return;
     }
+    this.lastStatus = { state, message };
     const missRate = this.telemetry.gesturesTotal
       ? Math.round((this.telemetry.gesturesOutOfContext / this.telemetry.gesturesTotal) * 100)
       : 0;
