@@ -48,6 +48,16 @@ body {
   background: linear-gradient(180deg, var(--bg-1), var(--bg-0));
 }
 
+#debug-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+  z-index: 1;
+}
+
 #camera-preview {
   position: absolute;
   right: 1rem;

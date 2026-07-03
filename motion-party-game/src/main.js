@@ -8,6 +8,7 @@ import UIManager from "./UIManager.js";
 import ScoreManager from "./ScoreManager.js";
 import KeyboardFallback from "./KeyboardFallback.js";
 import GameManager from "./GameManager.js";
+import DebugOverlay from "./DebugOverlay.js";
 import TennisMode from "./modes/TennisMode.js";
 import BowlingMode from "./modes/BowlingMode.js";
 import ObstacleDashMode from "./modes/ObstacleDashMode.js";
@@ -17,9 +18,12 @@ import { initAudio, setMasterVolume } from "./utils/audio.js";
 
 const eventBus = new EventBus();
 const canvas = document.getElementById("game-canvas");
+const debugCanvas = document.getElementById("debug-canvas");
 const uiRoot = document.getElementById("ui-root");
 const sceneManager = new SceneManager(canvas, CONFIG);
 sceneManager.init();
+const debugOverlay = new DebugOverlay(debugCanvas, eventBus, CONFIG);
+debugOverlay.init();
 
 const trackingEngine = new TrackingEngine(eventBus, CONFIG);
 const gestureRecognizer = new GestureRecognizer(eventBus, CONFIG);
@@ -104,6 +108,7 @@ function loop(now) {
   const gestures = gestureRecognizer.process(trackingFrame, gameManager.players, gameManager.calibrationData);
   gameManager.update(dt, trackingFrame, gestures);
   sceneManager.render();
+  debugOverlay.render(trackingFrame);
 
   requestAnimationFrame(loop);
 }
