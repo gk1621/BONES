@@ -387,6 +387,12 @@ select {
   color: #94c9ff;
 }
 
+.qa-report-summary {
+  margin-bottom: 0.45rem;
+  font-size: 0.7rem;
+  color: #9fd0ff;
+}
+
 .qa-report-history {
   list-style: none;
   margin-bottom: 0.6rem;
@@ -394,6 +400,11 @@ select {
   gap: 0.18rem;
   font-size: 0.7rem;
   color: #c6dfff;
+}
+
+.qa-report-context {
+  color: #98bce8;
+  margin-top: 0.1rem;
 }
 
 .qa-panel li.pass {

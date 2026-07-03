@@ -17,6 +17,11 @@ export default class QAOverlay {
     this.smokeMessage = "Idle";
     this.lastReportText = "No smoke runs yet.";
     this.reportHistory = [];
+    this.reportStats = {
+      completed: 0,
+      cancelled: 0,
+      failed: 0
+    };
 
     this.onStateChanged = this.handleStateChanged.bind(this);
     this.onKeyboardStarted = this.handleKeyboardStarted.bind(this);
@@ -95,6 +100,11 @@ export default class QAOverlay {
     this.smokeMessage = "Idle";
     this.lastReportText = "No smoke runs yet.";
     this.reportHistory = [];
+    this.reportStats = {
+      completed: 0,
+      cancelled: 0,
+      failed: 0
+    };
     this.render();
   }
 
@@ -132,11 +142,17 @@ export default class QAOverlay {
     }
     const duration = report.durationMs ? `${(report.durationMs / 1000).toFixed(1)}s` : "n/a";
     const tested = report.modesTested?.length ? report.modesTested.join(", ") : "none";
-    this.lastReportText = `${report.result.toUpperCase()} | ${duration} | modes: ${tested}`;
+    const context = report.step ? ` @ ${report.step}` : report.error ? ` @ ${report.error}` : "";
+    this.lastReportText = `${report.result.toUpperCase()} | ${duration} | modes: ${tested}${context}`;
+    if (this.reportStats[report.result] !== undefined) {
+      this.reportStats[report.result] += 1;
+    }
     this.reportHistory.unshift({
       result: report.result,
       duration,
-      tested
+      tested,
+      step: report.step ?? "",
+      error: report.error ?? ""
     });
     this.reportHistory = this.reportHistory.slice(0, 4);
     this.render();
@@ -154,7 +170,10 @@ export default class QAOverlay {
       ? this.reportHistory
           .map(
             (row) =>
-              `<li><strong>${row.result.toUpperCase()}</strong> • ${row.duration} • ${row.tested}</li>`
+              `<li>
+                <strong>${row.result.toUpperCase()}</strong> • ${row.duration} • ${row.tested}
+                ${row.step || row.error ? `<div class="qa-report-context">${row.step || row.error}</div>` : ""}
+              </li>`
           )
           .join("")
       : "<li>No runs yet.</li>";
@@ -164,6 +183,7 @@ export default class QAOverlay {
       <ul>${rows}</ul>
       <p class="qa-status">${this.smokeMessage}</p>
       <p class="qa-report">${this.lastReportText}</p>
+      <p class="qa-report-summary">ok ${this.reportStats.completed} • cancel ${this.reportStats.cancelled} • fail ${this.reportStats.failed}</p>
       <ul class="qa-report-history">${historyRows}</ul>
       <button class="btn btn-ghost qa-btn" data-action="run-smoke" ${this.running ? "disabled" : ""}>
         ${this.running ? "Smoke Running" : "Run Keyboard Smoke"}
