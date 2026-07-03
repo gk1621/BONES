@@ -50,11 +50,30 @@ export default class QAOverlay {
   }
 
   handleClick(event) {
-    const button = event.target.closest("[data-action='run-smoke']");
-    if (!button || this.running) {
+    const button = event.target.closest("[data-action]");
+    if (!button) {
       return;
     }
-    this.eventBus.emit("qa-run-smoke");
+
+    if (button.dataset.action === "run-smoke") {
+      if (this.running) {
+        return;
+      }
+      this.eventBus.emit("qa-run-smoke");
+      return;
+    }
+
+    if (button.dataset.action === "reset-diagnostics") {
+      this.resetDiagnostics();
+      this.eventBus.emit("qa-diagnostics-reset");
+    }
+  }
+
+  resetDiagnostics() {
+    this.stateMap = Object.fromEntries(CHECK_ITEMS.map((item) => [item.key, false]));
+    this.launchedModes.clear();
+    this.running = false;
+    this.render();
   }
 
   handleStateChanged({ state }) {
@@ -99,6 +118,7 @@ export default class QAOverlay {
       <button class="btn btn-ghost qa-btn" data-action="run-smoke" ${this.running ? "disabled" : ""}>
         ${this.running ? "Running..." : "Run Keyboard Smoke"}
       </button>
+      <button class="btn btn-ghost qa-btn" data-action="reset-diagnostics">Reset Diagnostics</button>
     `;
   }
 }

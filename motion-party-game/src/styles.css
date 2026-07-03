@@ -385,8 +385,13 @@ select {
 
 .qa-btn {
   width: 100%;
+  display: block;
   font-size: 0.78rem;
   padding: 0.5rem 0.65rem;
+}
+
+.qa-btn + .qa-btn {
+  margin-top: 0.42rem;
 }
 
 .health-indicator {
