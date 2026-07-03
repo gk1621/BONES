@@ -109,8 +109,6 @@ export default class KeyboardFallback {
       source: "keyboard",
       players: syntheticPlayers
     };
-
-    this.eventBus.emit("tracking-updated", frame);
     return frame;
   }
 

@@ -182,12 +182,12 @@ export default class TrackingEngine {
   inferFrame() {
     const fallback = this.getFallbackFrame();
     if (fallback) {
-      this.latestFrame = fallback;
+      this.publishFrame(fallback);
       return;
     }
 
     if (!this.poseLandmarker || !this.videoElement || this.videoElement.readyState < 2) {
-      this.latestFrame = this.createEmptyFrame("camera");
+      this.publishFrame(this.createEmptyFrame("camera"));
       return;
     }
 
@@ -233,15 +233,22 @@ export default class TrackingEngine {
         });
       }
 
-      this.latestFrame = frame;
-      this.eventBus.emit("tracking-updated", frame);
+      this.publishFrame(frame);
     } catch (error) {
       this.eventBus.emit("tracking-warning", {
         type: "runtime",
         message: "Tracking hiccup detected. Continuing with last known frame."
       });
-      this.latestFrame = this.latestFrame ?? this.createEmptyFrame("camera");
+      const fallbackFrame = this.latestFrame
+        ? { ...this.latestFrame, timestamp: performance.now() }
+        : this.createEmptyFrame("camera");
+      this.publishFrame(fallbackFrame);
     }
+  }
+
+  publishFrame(frame) {
+    this.latestFrame = frame;
+    this.eventBus.emit("tracking-updated", frame);
   }
 
   landmarksToPlayer(landmarks, index) {
