@@ -10,6 +10,7 @@ import KeyboardFallback from "./KeyboardFallback.js";
 import GameManager from "./GameManager.js";
 import DebugOverlay from "./DebugOverlay.js";
 import DebugPanel from "./DebugPanel.js";
+import QAOverlay from "./QAOverlay.js";
 import TennisMode from "./modes/TennisMode.js";
 import BowlingMode from "./modes/BowlingMode.js";
 import ObstacleDashMode from "./modes/ObstacleDashMode.js";
@@ -28,6 +29,8 @@ const debugOverlay = new DebugOverlay(debugCanvas, eventBus, CONFIG);
 debugOverlay.init();
 const debugPanel = new DebugPanel(appRoot, eventBus, CONFIG);
 debugPanel.init();
+const qaOverlay = new QAOverlay(appRoot, eventBus);
+qaOverlay.init();
 
 const trackingEngine = new TrackingEngine(eventBus, CONFIG);
 const gestureRecognizer = new GestureRecognizer(eventBus, CONFIG);
@@ -93,6 +96,39 @@ gameManager.registerMode("target-toss", TargetTossMode, {
 });
 
 gameManager.init();
+
+const wait = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
+
+eventBus.on("qa-run-smoke", async () => {
+  const player = { playerId: "p1", name: "Player 1", color: "#4ecdc4" };
+  eventBus.emit("qa-smoke-status", { running: true });
+  try {
+    gameManager.startKeyboardDemo();
+    await wait(180);
+    gameManager.setPlayers([player]);
+    gameManager.beginCalibration();
+    await wait(180);
+    gameManager.advanceCalibration(true);
+    await wait(220);
+
+    const modeIds = ["tennis", "bowling", "obstacle-dash", "dance", "target-toss"];
+    for (const modeId of modeIds) {
+      gameManager.startMode(modeId);
+      await wait(320);
+      gameManager.endRound("qa-smoke");
+      await wait(220);
+      gameManager.returnToModeSelect();
+      await wait(180);
+    }
+
+    eventBus.emit("qa-smoke-status", { running: false });
+    uiManager.showToast("Keyboard smoke sequence complete.", "ok");
+  } catch (error) {
+    eventBus.emit("qa-smoke-status", { running: false });
+    uiManager.showToast("Smoke sequence failed. Check console.", "error");
+    console.error("QA smoke sequence failed", error);
+  }
+});
 
 window.addEventListener(
   "pointerdown",

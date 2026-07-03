@@ -49,6 +49,7 @@ export default class GameManager {
 
   setState(nextState) {
     this.state = nextState;
+    this.eventBus.emit("state-changed", { state: nextState });
     if (nextState === "welcome") {
       this.uiManager.showWelcome();
     } else if (nextState === "camera-permission") {
@@ -96,6 +97,7 @@ export default class GameManager {
     this.keyboardFallback.start();
     this.trackingEngine.setKeyboardMode(true);
     this.trackingEngine.start();
+    this.eventBus.emit("keyboard-demo-started");
     this.uiManager.showToast("Keyboard demo mode enabled.", "ok");
     this.setState("player-setup");
   }
@@ -147,6 +149,7 @@ export default class GameManager {
       config: this.config
     });
     this.currentMode.init(this.players);
+    this.eventBus.emit("mode-started", { modeId });
     this.elapsedTime = 0;
     this.remainingTime = mode.metadata.roundSeconds ?? this.config.game.defaultRoundSeconds;
     this.setState("playing");

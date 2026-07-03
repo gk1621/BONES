@@ -349,6 +349,46 @@ select {
   color: #9ec8ff;
 }
 
+.qa-panel {
+  position: absolute;
+  right: 1rem;
+  top: 4.6rem;
+  width: 250px;
+  border-radius: 0.72rem;
+  padding: 0.65rem;
+  font-size: 0.8rem;
+  background: rgba(6, 13, 30, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  z-index: 4;
+}
+
+.qa-panel strong {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: #9ec8ff;
+}
+
+.qa-panel ul {
+  list-style: none;
+  display: grid;
+  gap: 0.22rem;
+  margin-bottom: 0.55rem;
+}
+
+.qa-panel li.pass {
+  color: #7ef5bf;
+}
+
+.qa-panel li.pending {
+  color: #f3e7bf;
+}
+
+.qa-btn {
+  width: 100%;
+  font-size: 0.78rem;
+  padding: 0.5rem 0.65rem;
+}
+
 @media (max-width: 850px) {
   #ui-root {
     padding: 0.7rem;
