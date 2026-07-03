@@ -105,6 +105,7 @@ let appDisposed = false;
 let animationFrameId = null;
 let qaSmokeSession = null;
 let lastSmokeReport = null;
+let smokeReportHistory = [];
 
 const emitSmokeStatus = (running, message) => {
   eventBus.emit("qa-smoke-status", { running, message });
@@ -112,6 +113,8 @@ const emitSmokeStatus = (running, message) => {
 
 const emitSmokeReport = (report) => {
   lastSmokeReport = report;
+  smokeReportHistory.unshift(report);
+  smokeReportHistory = smokeReportHistory.slice(0, 10);
   eventBus.emit("qa-smoke-report", report);
 };
 
@@ -246,6 +249,7 @@ const stopQaSmoke = () => {
 
 const onDiagnosticsReset = () => {
   lastSmokeReport = null;
+  smokeReportHistory = [];
   if (!qaSmokeSession?.running) {
     return;
   }
@@ -291,7 +295,8 @@ const exportDiagnostics = () => {
       health: healthMonitor.getSnapshot(),
       qa: {
         smokeRunning: Boolean(qaSmokeSession?.running),
-        lastSmokeReport
+        lastSmokeReport,
+        smokeReportHistory
       }
     };
 

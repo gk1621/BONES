@@ -387,6 +387,15 @@ select {
   color: #94c9ff;
 }
 
+.qa-report-history {
+  list-style: none;
+  margin-bottom: 0.6rem;
+  display: grid;
+  gap: 0.18rem;
+  font-size: 0.7rem;
+  color: #c6dfff;
+}
+
 .qa-panel li.pass {
   color: #7ef5bf;
 }
