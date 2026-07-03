@@ -10,9 +10,21 @@ export default class HealthMonitor {
     this.lastRenderTick = performance.now();
     this.lastTrackingTick = performance.now();
     this.currentState = "welcome";
+    this.previousModeId = null;
+    this.lastModeStartAt = 0;
+    this.telemetry = {
+      modeStarts: 0,
+      modeRestarts: 0,
+      confidenceDrops: 0,
+      gesturesTotal: 0,
+      gesturesOutOfContext: 0
+    };
 
     this.onTrackingUpdated = this.handleTrackingUpdated.bind(this);
     this.onStateChanged = this.handleStateChanged.bind(this);
+    this.onTrackingWarning = this.handleTrackingWarning.bind(this);
+    this.onModeStarted = this.handleModeStarted.bind(this);
+    this.onGestureDetected = this.handleGestureDetected.bind(this);
   }
 
   init() {
@@ -22,6 +34,9 @@ export default class HealthMonitor {
 
     this.eventBus.on("tracking-updated", this.onTrackingUpdated);
     this.eventBus.on("state-changed", this.onStateChanged);
+    this.eventBus.on("tracking-warning", this.onTrackingWarning);
+    this.eventBus.on("mode-started", this.onModeStarted);
+    this.eventBus.on("gesture-detected", this.onGestureDetected);
 
     this.checkTimer = window.setInterval(() => this.check(), 400);
     this.render({ state: "healthy", message: "System healthy" });
@@ -30,6 +45,9 @@ export default class HealthMonitor {
   destroy() {
     this.eventBus.off("tracking-updated", this.onTrackingUpdated);
     this.eventBus.off("state-changed", this.onStateChanged);
+    this.eventBus.off("tracking-warning", this.onTrackingWarning);
+    this.eventBus.off("mode-started", this.onModeStarted);
+    this.eventBus.off("gesture-detected", this.onGestureDetected);
     if (this.checkTimer) {
       window.clearInterval(this.checkTimer);
       this.checkTimer = null;
@@ -52,6 +70,29 @@ export default class HealthMonitor {
     this.currentState = state;
     if (!TRACKING_REQUIRED_STATES.has(this.currentState)) {
       this.lastTrackingTick = performance.now();
+    }
+  }
+
+  handleTrackingWarning(warning) {
+    if (warning?.type === "confidence") {
+      this.telemetry.confidenceDrops += 1;
+    }
+  }
+
+  handleModeStarted({ modeId }) {
+    const now = performance.now();
+    this.telemetry.modeStarts += 1;
+    if (this.previousModeId === modeId && now - this.lastModeStartAt < 90_000) {
+      this.telemetry.modeRestarts += 1;
+    }
+    this.previousModeId = modeId;
+    this.lastModeStartAt = now;
+  }
+
+  handleGestureDetected() {
+    this.telemetry.gesturesTotal += 1;
+    if (this.currentState !== "playing") {
+      this.telemetry.gesturesOutOfContext += 1;
     }
   }
 
@@ -92,7 +133,18 @@ export default class HealthMonitor {
     if (!this.element) {
       return;
     }
+    const missRate = this.telemetry.gesturesTotal
+      ? Math.round((this.telemetry.gesturesOutOfContext / this.telemetry.gesturesTotal) * 100)
+      : 0;
     this.element.className = `health-indicator ${state}`;
-    this.element.textContent = `Health: ${message}`;
+    this.element.innerHTML = `
+      <strong>Health: ${message}</strong>
+      <div class="health-telemetry">
+        <span>Modes ${this.telemetry.modeStarts}</span>
+        <span>Restarts ${this.telemetry.modeRestarts}</span>
+        <span>Confidence drops ${this.telemetry.confidenceDrops}</span>
+        <span>Gesture miss-rate ${missRate}%</span>
+      </div>
+    `;
   }
 }

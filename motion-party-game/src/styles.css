@@ -394,13 +394,26 @@ select {
   left: 1rem;
   top: 1rem;
   max-width: 360px;
-  border-radius: 999px;
+  border-radius: 0.72rem;
   padding: 0.4rem 0.72rem;
   font-size: 0.78rem;
   border: 1px solid rgba(255, 255, 255, 0.22);
   background: rgba(8, 16, 31, 0.85);
   z-index: 4;
   pointer-events: none;
+}
+
+.health-indicator strong {
+  display: block;
+  margin-bottom: 0.24rem;
+}
+
+.health-telemetry {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(120px, 1fr));
+  gap: 0.16rem 0.52rem;
+  font-size: 0.73rem;
+  color: #d5e6ff;
 }
 
 .health-indicator.healthy {
