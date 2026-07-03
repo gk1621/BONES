@@ -43,6 +43,8 @@ export default class DebugOverlay {
     this.eventBus.off("toggle-debug", this.onToggleDebug);
     this.eventBus.off("tracking-updated", this.onTrackingUpdated);
     window.removeEventListener("resize", this.onResize);
+    this.clear();
+    this.canvas.style.display = "none";
   }
 
   toggle() {

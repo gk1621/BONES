@@ -38,6 +38,7 @@ export default class DebugPanel {
     if (this.element?.parentNode) {
       this.element.parentNode.removeChild(this.element);
     }
+    this.element = null;
   }
 
   toggle() {

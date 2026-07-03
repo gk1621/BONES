@@ -14,6 +14,15 @@ export default class UIManager {
     this.showWelcome();
   }
 
+  destroy() {
+    this.rootElement.removeEventListener("click", this.boundClick);
+    this.rootElement.removeEventListener("submit", this.boundSubmit);
+    if (this.toastTimer) {
+      window.clearTimeout(this.toastTimer);
+      this.toastTimer = null;
+    }
+  }
+
   showWelcome() {
     this.render(`
       <section class="screen welcome-screen panel">

@@ -115,6 +115,22 @@ export default class SceneManager {
     this.renderer.setSize(width, height);
   }
 
+  destroy() {
+    window.removeEventListener("resize", this.onResize);
+    if (this.scene) {
+      const objects = [...this.scene.children];
+      objects.forEach((object) => this.removeAndDispose(object));
+    }
+    if (this.renderer) {
+      this.renderer.dispose();
+      this.renderer.forceContextLoss?.();
+    }
+    this.scene = null;
+    this.camera = null;
+    this.orthoCamera = null;
+    this.renderer = null;
+  }
+
   getScene() {
     return this.scene;
   }

@@ -19,19 +19,14 @@ export default class QAOverlay {
     this.onKeyboardStarted = this.handleKeyboardStarted.bind(this);
     this.onModeStarted = this.handleModeStarted.bind(this);
     this.onSmokeStatus = this.handleSmokeStatus.bind(this);
+    this.onClick = this.handleClick.bind(this);
   }
 
   init() {
     this.element = document.createElement("aside");
     this.element.className = "qa-panel";
     this.container.appendChild(this.element);
-    this.element.addEventListener("click", (event) => {
-      const button = event.target.closest("[data-action='run-smoke']");
-      if (!button || this.running) {
-        return;
-      }
-      this.eventBus.emit("qa-run-smoke");
-    });
+    this.element.addEventListener("click", this.onClick);
 
     this.eventBus.on("state-changed", this.onStateChanged);
     this.eventBus.on("keyboard-demo-started", this.onKeyboardStarted);
@@ -45,9 +40,21 @@ export default class QAOverlay {
     this.eventBus.off("keyboard-demo-started", this.onKeyboardStarted);
     this.eventBus.off("mode-started", this.onModeStarted);
     this.eventBus.off("qa-smoke-status", this.onSmokeStatus);
+    if (this.element) {
+      this.element.removeEventListener("click", this.onClick);
+    }
     if (this.element?.parentNode) {
       this.element.parentNode.removeChild(this.element);
     }
+    this.element = null;
+  }
+
+  handleClick(event) {
+    const button = event.target.closest("[data-action='run-smoke']");
+    if (!button || this.running) {
+      return;
+    }
+    this.eventBus.emit("qa-run-smoke");
   }
 
   handleStateChanged({ state }) {

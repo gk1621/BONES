@@ -144,6 +144,23 @@ export default class TrackingEngine {
       this.stream.getTracks().forEach((track) => track.stop());
       this.stream = null;
     }
+    if (this.videoElement) {
+      this.videoElement.srcObject = null;
+    }
+    this.cameraAvailable = false;
+  }
+
+  destroy() {
+    this.stop();
+    try {
+      this.poseLandmarker?.close?.();
+      this.handLandmarker?.close?.();
+    } catch (error) {
+      console.warn("Failed to close tracking models cleanly", error);
+    }
+    this.poseLandmarker = null;
+    this.handLandmarker = null;
+    this.fallbackProvider = null;
   }
 
   getLatestFrame() {

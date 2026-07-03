@@ -98,25 +98,48 @@ gameManager.registerMode("target-toss", TargetTossMode, {
 gameManager.init();
 
 const wait = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
+let appDisposed = false;
+let animationFrameId = null;
 
-eventBus.on("qa-run-smoke", async () => {
+const runQaSmoke = async () => {
+  if (appDisposed) {
+    return;
+  }
   const player = { playerId: "p1", name: "Player 1", color: "#4ecdc4" };
   eventBus.emit("qa-smoke-status", { running: true });
   try {
     gameManager.startKeyboardDemo();
     await wait(180);
+    if (appDisposed) {
+      return;
+    }
     gameManager.setPlayers([player]);
     gameManager.beginCalibration();
     await wait(180);
+    if (appDisposed) {
+      return;
+    }
     gameManager.advanceCalibration(true);
     await wait(220);
+    if (appDisposed) {
+      return;
+    }
 
     const modeIds = ["tennis", "bowling", "obstacle-dash", "dance", "target-toss"];
     for (const modeId of modeIds) {
+      if (appDisposed) {
+        return;
+      }
       gameManager.startMode(modeId);
       await wait(320);
+      if (appDisposed) {
+        return;
+      }
       gameManager.endRound("qa-smoke");
       await wait(220);
+      if (appDisposed) {
+        return;
+      }
       gameManager.returnToModeSelect();
       await wait(180);
     }
@@ -128,19 +151,25 @@ eventBus.on("qa-run-smoke", async () => {
     uiManager.showToast("Smoke sequence failed. Check console.", "error");
     console.error("QA smoke sequence failed", error);
   }
-});
+};
 
+eventBus.on("qa-run-smoke", runQaSmoke);
+
+const onFirstPointerDown = () => {
+  initAudio();
+  setMasterVolume(CONFIG.audio.masterVolume);
+};
 window.addEventListener(
   "pointerdown",
-  () => {
-    initAudio();
-    setMasterVolume(CONFIG.audio.masterVolume);
-  },
+  onFirstPointerDown,
   { once: true }
 );
 
 let lastTime = performance.now();
 function loop(now) {
+  if (appDisposed) {
+    return;
+  }
   const dt = Math.min((now - lastTime) / 1000, 0.05);
   lastTime = now;
   const fps = dt > 0 ? 1 / dt : 0;
@@ -152,7 +181,38 @@ function loop(now) {
   debugOverlay.render(trackingFrame);
   debugPanel.updateFrameStats(fps);
 
-  requestAnimationFrame(loop);
+  animationFrameId = requestAnimationFrame(loop);
 }
 
-requestAnimationFrame(loop);
+function cleanupApp() {
+  if (appDisposed) {
+    return;
+  }
+  appDisposed = true;
+  if (animationFrameId !== null) {
+    cancelAnimationFrame(animationFrameId);
+    animationFrameId = null;
+  }
+
+  window.removeEventListener("pointerdown", onFirstPointerDown);
+  eventBus.off("qa-run-smoke", runQaSmoke);
+
+  qaOverlay.destroy();
+  debugPanel.destroy();
+  debugOverlay.destroy();
+  gameManager.destroy();
+  trackingEngine.destroy();
+  sceneManager.destroy();
+  eventBus.clear();
+}
+
+window.addEventListener("beforeunload", cleanupApp);
+window.addEventListener("pagehide", cleanupApp);
+
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    cleanupApp();
+  });
+}
+
+animationFrameId = requestAnimationFrame(loop);

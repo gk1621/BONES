@@ -47,6 +47,21 @@ export default class GameManager {
     this.setState("welcome");
   }
 
+  destroy() {
+    this.eventBus.off("ui-action", this.onUiAction);
+    this.eventBus.off("tracking-warning", this.onTrackingWarning);
+    this.eventBus.off("mode-feedback", this.onModeFeedback);
+
+    if (this.currentMode) {
+      this.currentMode.teardown();
+      this.currentMode = null;
+    }
+
+    this.keyboardFallback.stop();
+    this.trackingEngine.stop();
+    this.uiManager.destroy();
+  }
+
   setState(nextState) {
     this.state = nextState;
     this.eventBus.emit("state-changed", { state: nextState });
