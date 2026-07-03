@@ -10,6 +10,7 @@ export default class HealthMonitor {
     this.lastRenderTick = performance.now();
     this.lastTrackingTick = performance.now();
     this.currentState = "welcome";
+    this.pageVisible = document.visibilityState !== "hidden";
     this.previousModeId = null;
     this.lastModeStartAt = 0;
     this.telemetry = {
@@ -31,6 +32,7 @@ export default class HealthMonitor {
     this.onGestureDetected = this.handleGestureDetected.bind(this);
     this.onDiagnosticsReset = this.handleDiagnosticsReset.bind(this);
     this.onSmokeReport = this.handleSmokeReport.bind(this);
+    this.onVisibilityChange = this.handleVisibilityChange.bind(this);
   }
 
   init() {
@@ -45,6 +47,7 @@ export default class HealthMonitor {
     this.eventBus.on("gesture-detected", this.onGestureDetected);
     this.eventBus.on("qa-diagnostics-reset", this.onDiagnosticsReset);
     this.eventBus.on("qa-smoke-report", this.onSmokeReport);
+    document.addEventListener("visibilitychange", this.onVisibilityChange);
 
     this.checkTimer = window.setInterval(() => this.check(), 400);
     this.render({ state: "healthy", message: "System healthy" });
@@ -58,6 +61,7 @@ export default class HealthMonitor {
     this.eventBus.off("gesture-detected", this.onGestureDetected);
     this.eventBus.off("qa-diagnostics-reset", this.onDiagnosticsReset);
     this.eventBus.off("qa-smoke-report", this.onSmokeReport);
+    document.removeEventListener("visibilitychange", this.onVisibilityChange);
     if (this.checkTimer) {
       window.clearInterval(this.checkTimer);
       this.checkTimer = null;
@@ -137,7 +141,20 @@ export default class HealthMonitor {
     }
   }
 
+  handleVisibilityChange() {
+    this.pageVisible = document.visibilityState !== "hidden";
+    const now = performance.now();
+    this.lastRenderTick = now;
+    this.lastTrackingTick = now;
+    if (!this.pageVisible) {
+      this.render({ state: "healthy", message: "Paused (tab hidden)" });
+    }
+  }
+
   check() {
+    if (!this.pageVisible) {
+      return;
+    }
     const now = performance.now();
     const renderLagMs = now - this.lastRenderTick;
     const trackingLagMs = now - this.lastTrackingTick;
@@ -177,6 +194,7 @@ export default class HealthMonitor {
     return {
       status: { ...this.lastStatus },
       currentState: this.currentState,
+      pageVisible: this.pageVisible,
       telemetry: {
         ...this.telemetry,
         gestureMissRate: Number(missRate.toFixed(4))
